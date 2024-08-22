@@ -2,6 +2,7 @@ export default class Game extends Phaser.Scene {
   constructor() {
     super("Game");
     this.ballSpeed = 400; // Velocidad inicial de la pelota
+    this.score = 0
   }
 
   create() {
@@ -39,6 +40,11 @@ export default class Game extends Phaser.Scene {
 
     // Habilitar la detección de colisiones con los bordes del mundo
     this.ball.body.setCollideWorldBounds(true, 1, 1, true);
+
+    this.scoreText = this.add.text(16, 16, "Score: 0", {
+      fontSize: "32px",
+      fill: "#ffffff",
+    });
   }
 
   createBallAndShovel() {
@@ -53,11 +59,11 @@ export default class Game extends Phaser.Scene {
     this.ball.body.setBounce(1, 1);
     this.ball.body.setMaxSpeed(this.ballSpeed);
     this.ball.body.setAllowGravity(false);
-    
+
     // Crear la pala
     let rectWidth = this.game.config.width / 5.4;
     let rectHeight = 15;
-    let rectX = rectWidth *2.7;
+    let rectX = rectWidth * 2.7;
     let rectY = (this.game.config.height * 5) / 6;
     this.shovel = this.add.rectangle(
       rectX,
@@ -70,8 +76,8 @@ export default class Game extends Phaser.Scene {
     this.shovel.body.setImmovable(true);
     this.shovel.body.setCollideWorldBounds(true);
 
-        // Inicializar la velocidad actual de la paleta
-        this.shovel.body.currentSpeed = 0;
+    // Inicializar la velocidad actual de la paleta
+    this.shovel.body.currentSpeed = 0;
   }
 
   createObstacles() {
@@ -135,6 +141,10 @@ export default class Game extends Phaser.Scene {
 
     obstacle.destroy(); // Destruir el obstáculo
 
+    // Incrementar el puntaje y actualizar el texto en pantalla
+    this.score += 1;
+    this.scoreText.setText("Score: " + this.score);
+
     // Comprobar si todos los obstáculos han sido destruidos
     if (this.obstacles.countActive(true) === 0) {
       this.resetLevel(); // Reiniciar nivel si todos los obstáculos son destruidos
@@ -149,9 +159,10 @@ export default class Game extends Phaser.Scene {
     this.createObstacles();
   }
 
-   // Este método se llama cuando la pelota toca el borde del mundo
-   handleWorldBounds(body, up, down, left, right) {
-    if (down) { // Si la colisión es con el borde inferior
+  // Este método se llama cuando la pelota toca el borde del mundo
+  handleWorldBounds(body, up, down, left, right) {
+    if (down) {
+      // Si la colisión es con el borde inferior
       window.location.reload(); // Reiniciar la página
     }
   }
