@@ -6,69 +6,111 @@ export class Game extends Scene {
   }
 
   create() {
-    // crear pala como rectangulo
-    this.paddle = this.add.rectangle(400, 500, 100, 20, 0x6666ff);
+    // Mitad del ancho y la altura
+    let halfWidth = this.game.config.width/2;
+    let halfHeight = this.game.config.height/2;
 
-    // crear bola como circulo
-    this.ball = this.add.circle(400, 300, 10, 0xff6666);
+    // Circulo
+    let circle = this.add.circle(halfWidth, halfHeight, 8, 0xbbbbbb, 1.0);
 
-    //crear obstaculo
-    this.obstacle = this.add.rectangle(400, 200, 100, 100, 0x66ff66);
+    // añadir físicas
+    this.physics.add.existing(circle);
 
-    //agregarlos a las fisicas
-    this.physics.add.existing(this.paddle);
-    this.physics.add.existing(this.ball);
-    this.physics.add.existing(this.obstacle);
+    // Acceder al cuerpo del circulo
+    let circleBody = circle.body;
 
-    //hacer la paleta inamovible
-    this.paddle.body.setImmovable(true);
+    // Configurar el cuerpo de físicas
+    circleBody.setCircle(8);
 
-    //agregar configuraciones de fisicas a la paleta
-    this.paddle.body.setCollideWorldBounds(true);
+    // Establecer la velocidad del círculo
+    circleBody.setVelocity(0, 300);
 
-    //agregar configuracion de fisicas a la pelota
-    this.ball.body.setCollideWorldBounds(true);
-    this.ball.body.setBounce(1, 1);
-    this.ball.body.setVelocity(200, 200);
+    // Establecer colisión con el mundo
+    circleBody.setCollideWorldBounds(true);
 
-    //agregar configuracion de fisicas al obstaculo
-    this.obstacle.body.setImmovable(true);
+    // Ajustar el rebote para que no pierda velocidad
+    circleBody.setBounce(1, 1);
 
-    //agregar cursor
+    // Ajustar la fricción para que no pierda velocidad
+    circleBody.setDamping(false);
+    circleBody.setDrag(0, 0);
+    
+    // Crear el Rectángulo
+    let rectWidth = this.game.config.width / 5.4;
+    let rectHeight = 15;
+    let rectX = rectWidth / 2;
+    let rectY = this.game.config.height * 5/6;
+
+    // La pala de movimiento
+    let shovel = this.add.rectangle(rectX, rectY, rectWidth, rectHeight, 0xbbbbbb);
+    this.physics.add.existing(shovel);
+    let rectBody = shovel.body;
+    rectBody.setImmovable(true);
+    rectBody.setCollideWorldBounds(true);
+
+    // Añadir colisión entre el círculo y el rectángulo
+    this.physics.add.collider(circle, shovel, this.handleCollision, null, this);
+
+
+    // Crear obstáculos rectangulares en la mitad superior de la pantalla
+    this.obstacles = this.physics.add.group();
+
+    for (let i = 0; i < 8; i++) {
+      let obstacleX = 100 + i * 90;
+      let obstacleY = 50 + Math.random() * (this.game.config.height / 2 - 90);
+      let obstacle = this.add.rectangle(obstacleX, obstacleY, 70, 20, 0xff0000);
+      this.physics.add.existing(obstacle);
+      obstacle.body.setImmovable(true);
+      this.obstacles.add(obstacle);
+    }
+
+    // Añadir colisión entre el círculo y los obstáculos
+    this.physics.add.collider(circle, this.obstacles, this.handleObstacleCollision, null, this);
+
     this.cursor = this.input.keyboard.createCursorKeys();
 
-    //colision de la pelota con la paleta
-    this.physics.add.collider(this.paddle, this.ball, null, null, this);
+    this.shovel = shovel; // Guardar referencia a la pala
+    this.circle = circle; // Guardar referencia al círculo
+  }
 
-    //colision de la pelota con el obstaculo
-    this.ball.body.onWorldBounds = true;
-    this.physics.add.collider(
-      this.obstacle,
-      this.ball,
-      this.handleCollision,
-      null,
-      this
-    );
+  handleCollision(circle, shovel) {
+    // Obtener la posición relativa del punto de colisión
+    let relativeX = circle.x - shovel.x;
 
-    //colision de la pelota con el limite inferior
-    this.physics.world.on("worldbounds", (body, up, down, left, right) => {
-      if (down) {
-        console.log("hit bottom");
-        this.scene.start("GameOver");
-      }
-    });
+    // Calcular el porcentaje de la posición relativa
+    let percent = relativeX / (shovel.width / 2);
+
+    // Ajustar la velocidad del círculo basado en la posición relativa
+    circle.body.setVelocityX(circle.body.velocity.x + percent * 200);
+  }
+
+  handleObstacleCollision(circle, obstacle) {
+    // Destruir el obstáculo
+    obstacle.destroy();
+
+    // Obtener la posición relativa del punto de colisión
+    let relativeX = circle.x - obstacle.x;
+    let relativeY = circle.y - obstacle.y;
+
+    // Calcular el porcentaje de la posición relativa
+    let percentX = relativeX / (obstacle.width / 2);
+    let percentY = relativeY / (obstacle.height / 2);
+
+    // Ajustar la velocidad del círculo basado en la posición relativa
+    circle.body.setVelocityX(circle.body.velocity.x + percentX * 200);
+    circle.body.setVelocityY(circle.body.velocity.y + percentY * 200);
   }
 
   update() {
-    if (this.cursor.right.isDown) {
-      this.paddle.x += 10;
-    } else if (this.cursor.left.isDown) {
-      this.paddle.x -= 10;
+    let rectBody = this.shovel.body; // Acceder al cuerpo de la pala
+
+    if (this.cursor.left.isDown) {
+      rectBody.setVelocityX(-350);
+    } else if (this.cursor.right.isDown) {
+      rectBody.setVelocityX(350);
+    } else {
+      rectBody.setVelocityX(0);
     }
   }
 
-  handleCollision = (obstacle, ball) => {
-    console.log("collision");
-    obstacle.destroy();
-  };
 }
